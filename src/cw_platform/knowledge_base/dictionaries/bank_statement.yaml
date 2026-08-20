@@ -1,0 +1,18 @@
+document_type: bank_statement
+fields:
+  - name: account_number
+    description: The account number the statement is issued for.
+    data_type: string
+    example_values: ["1234567890"]
+    required: true
+  - name: statement_period_end
+    description: The last date covered by this statement.
+    data_type: date
+    example_values: ["2026-01-31"]
+    required: true
+  - name: ending_balance
+    description: The account balance as of the statement period end date.
+    data_type: currency_amount
+    example_values: ["1,200.00"]
+    required: true
+overrides: {}

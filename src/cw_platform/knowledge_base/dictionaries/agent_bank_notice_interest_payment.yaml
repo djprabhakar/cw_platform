@@ -1,0 +1,18 @@
+document_type: agent_bank_notice_interest_payment
+fields:
+  - name: payment_amount
+    description: The interest payment amount due for this period.
+    data_type: currency_amount
+    example_values: ["45,000.00"]
+    required: true
+  - name: interest_rate
+    description: The interest rate applied for this payment period.
+    data_type: decimal
+    example_values: ["4.75%"]
+    required: true
+  - name: payment_date
+    description: The date the interest payment is due or was made.
+    data_type: date
+    example_values: ["2026-02-15"]
+    required: true
+overrides: {}
