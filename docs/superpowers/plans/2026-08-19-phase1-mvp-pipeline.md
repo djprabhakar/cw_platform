@@ -2237,8 +2237,7 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'cw_platform.api.app'`
 # src/cw_platform/api/app.py
 from __future__ import annotations
 
-from fastapi import Depends, FastAPI, HTTPException, UploadFile, Form
-from fastapi.responses import JSONResponse
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 
 from cw_platform.llm.provider import LLMProvider
 from cw_platform.models.output import DocumentOutput
@@ -2259,7 +2258,7 @@ def get_llm_provider() -> LLMProvider:
 @app.post("/documents")
 async def submit_document(
     document_id: str = Form(...),
-    file: UploadFile = None,
+    file: UploadFile = File(...),
     provider: LLMProvider = Depends(get_llm_provider),
 ):
     content = await file.read()
@@ -2272,7 +2271,7 @@ async def submit_document(
 async def get_document(document_id: str):
     output = _STORE.get(document_id)
     if output is None:
-        return JSONResponse(status_code=404, content={"detail": "document not found"})
+        raise HTTPException(status_code=404, detail="document not found")
     return output.model_dump()
 ```
 
