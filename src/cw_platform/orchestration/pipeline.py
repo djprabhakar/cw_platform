@@ -63,7 +63,12 @@ def _run_stages(filename: str, content: bytes, document_id: str, provider: LLMPr
 
     required_fields = [f.name for f in dictionary.fields if f.required]
     review_items = build_review_queue(
-        classification.document_type, fields, required_fields, DEFAULT_THRESHOLDS
+        classification.document_type,
+        fields,
+        required_fields,
+        DEFAULT_THRESHOLDS,
+        classification_confidence=classification.confidence,
+        instructions=instructions,
     )
 
     return DocumentOutput(
