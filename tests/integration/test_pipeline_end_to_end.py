@@ -61,6 +61,50 @@ def test_pipeline_routes_low_confidence_field_to_review():
     assert any(item.field_name == "ending_balance" for item in output.review_items)
 
 
+def test_pipeline_applies_discovered_transform_for_agent_bank_notice():
+    content = (FIXTURES / "agent_bank_notice_sample.pdf").read_bytes()
+
+    # Script order: classify, then one map_fields call per dictionary field
+    # (payment_amount, interest_rate, payment_date), then one
+    # discover_instructions call per found field, then one extract_fields call
+    # per found field. The payment_amount instruction is a real footnote-driven
+    # transformation, so apply_transform actually fires: "45,000" scaled by
+    # multiply_by_1000 becomes "45000000.00".
+    provider = FakeLLMProvider(
+        script=[
+            "agent_bank_notice_interest_payment|base|0.96",
+            "found|1|Payment Amount 45,000|payment amount located",
+            "found|1|Interest Rate 4.75%|interest rate located",
+            "found|1|Payment Date: 02/15/2026|payment date located",
+            "found|Payment Amount is reported in whole dollars.|multiply_by_1000|0.9",
+            "none|-|-|0.9",
+            "none|-|-|0.9",
+            "45,000|0.96",
+            "4.75|0.96",
+            "2026-02-15|0.96",
+        ]
+    )
+
+    output = process_document("agent_bank_notice_sample.pdf", content, "doc-6", provider)
+
+    assert output.document_type == "agent_bank_notice_interest_payment"
+    assert {f.name for f in output.fields} == {"payment_amount", "interest_rate", "payment_date"}
+
+    payment_amount = next(f for f in output.fields if f.name == "payment_amount")
+    assert payment_amount.transformation_applied == "multiply_by_1000"
+    assert payment_amount.value == "45000000.00"
+    assert payment_amount.provenance.transformation_applied == "multiply_by_1000"
+    assert payment_amount.data_type == "currency_amount"
+
+    # The discovered instruction's own confidence (0.90) sits below the
+    # payment_amount threshold (0.92), so it is routed to human review.
+    assert output.status == "needs_review"
+    assert any(
+        item.field_name == "payment_amount" and "instruction interpretation" in item.detail
+        for item in output.review_items
+    )
+
+
 def test_pipeline_routes_unsupported_format_to_review():
     # intake() raises UnsupportedFormatError for a non-PDF; the pipeline must
     # halt and route the document to human review rather than propagate.
