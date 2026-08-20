@@ -25,7 +25,9 @@ def _coverage_with_one_found_field() -> CoverageReport:
 
 
 def test_discover_instructions_only_queries_found_fields():
-    provider = FakeLLMProvider(script=["found|Payment Amount is reported in thousands.|multiply_by_1000|0.9"])
+    provider = FakeLLMProvider(
+        script={"reported in thousands": "found|Payment Amount is reported in thousands.|multiply_by_1000|0.9"}
+    )
     result = discover_instructions(_doc_with_footnote(), _coverage_with_one_found_field(), provider)
     assert len(result.instructions) == 1
     assert result.instructions[0].field_name == "payment_amount"
