@@ -1,5 +1,6 @@
 from cw_platform.extraction_agent.extractor import extract_fields
 from cw_platform.llm.provider import FakeLLMProvider
+from cw_platform.models.dictionary import DataDictionary, FieldDef
 from cw_platform.models.instructions import Instruction, InstructionSet
 from cw_platform.models.mapping import CoverageReport, FieldMapping
 
@@ -45,6 +46,55 @@ def test_extract_fields_no_transform_when_no_instruction():
 
     assert fields[0].value == "1200.00"
     assert fields[0].transformation_applied is None
+
+
+def test_extract_fields_uses_declared_data_types_from_dictionary():
+    coverage = CoverageReport(
+        document_type="bank_statement",
+        mappings=[
+            FieldMapping(field_name="ending_balance", status="found", page=1, text_span="1,200.00", notes="ok"),
+            FieldMapping(field_name="statement_period_end", status="found", page=1, text_span="01/31/2026", notes="ok"),
+            FieldMapping(field_name="unlisted_field", status="found", page=1, text_span="abc", notes="ok"),
+        ],
+    )
+    dictionary = DataDictionary(
+        document_type="bank_statement",
+        template="base",
+        fields=[
+            FieldDef(
+                name="ending_balance",
+                description="Ending balance",
+                data_type="currency_amount",
+                example_values=["1,200.00"],
+                required=True,
+            ),
+            FieldDef(
+                name="statement_period_end",
+                description="Statement period end",
+                data_type="date",
+                example_values=["2026-01-31"],
+                required=True,
+            ),
+        ],
+    )
+    provider = FakeLLMProvider(script=["1200.00|0.95", "2026-01-31|0.95", "abc|0.95"])
+
+    fields = extract_fields(coverage, InstructionSet(instructions=[]), provider, dictionary)
+
+    by_name = {f.name: f for f in fields}
+    assert by_name["ending_balance"].data_type == "currency_amount"
+    assert by_name["statement_period_end"].data_type == "date"
+    # Fields absent from the dictionary fall back to the previous default.
+    assert by_name["unlisted_field"].data_type == "string"
+
+
+def test_extract_fields_defaults_data_type_to_string_without_dictionary():
+    coverage = CoverageReport(
+        document_type="bank_statement",
+        mappings=[FieldMapping(field_name="ending_balance", status="found", page=1, text_span="1,200.00", notes="ok")],
+    )
+    fields = extract_fields(coverage, InstructionSet(instructions=[]), FakeLLMProvider(script=["1200.00|0.95"]))
+    assert fields[0].data_type == "string"
 
 
 def test_extract_fields_skips_not_found_mappings():

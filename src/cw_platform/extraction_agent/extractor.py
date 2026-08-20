@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from cw_platform.extraction_agent.transforms import apply_transform
 from cw_platform.llm.provider import LLMProvider
+from cw_platform.models.dictionary import DataDictionary
 from cw_platform.models.instructions import InstructionSet
 from cw_platform.models.mapping import CoverageReport
 from cw_platform.models.output import OutputField
@@ -16,8 +17,17 @@ Text span: {text_span}
 """
 
 
-def extract_fields(coverage: CoverageReport, instructions: InstructionSet, provider: LLMProvider) -> list[OutputField]:
+_DEFAULT_DATA_TYPE = "string"
+
+
+def extract_fields(
+    coverage: CoverageReport,
+    instructions: InstructionSet,
+    provider: LLMProvider,
+    dictionary: DataDictionary | None = None,
+) -> list[OutputField]:
     fields: list[OutputField] = []
+    declared_types = {f.name: f.data_type for f in dictionary.fields} if dictionary else {}
 
     for mapping in coverage.mappings:
         if mapping.status != "found" or mapping.page is None or mapping.text_span is None:
@@ -42,7 +52,7 @@ def extract_fields(coverage: CoverageReport, instructions: InstructionSet, provi
             OutputField(
                 name=mapping.field_name,
                 value=value,
-                data_type="string",
+                data_type=declared_types.get(mapping.field_name, _DEFAULT_DATA_TYPE),
                 confidence=float(confidence_str),
                 transformation_applied=transformation,
                 provenance=provenance,

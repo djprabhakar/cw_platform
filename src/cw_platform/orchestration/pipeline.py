@@ -59,7 +59,7 @@ def _run_stages(filename: str, content: bytes, document_id: str, provider: LLMPr
     dictionary = load_data_dictionary(classification.document_type, classification.template)
     coverage = map_fields(extracted, dictionary, provider)
     instructions = discover_instructions(extracted, coverage, provider)
-    fields = extract_fields(coverage, instructions, provider)
+    fields = extract_fields(coverage, instructions, provider, dictionary=dictionary)
 
     required_fields = [f.name for f in dictionary.fields if f.required]
     review_items = build_review_queue(
