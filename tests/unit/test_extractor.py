@@ -54,3 +54,21 @@ def test_extract_fields_skips_not_found_mappings():
     )
     fields = extract_fields(coverage, InstructionSet(instructions=[]), FakeLLMProvider(script=[]))
     assert fields == []
+
+
+def test_extract_fields_skips_found_mapping_with_missing_page():
+    coverage = CoverageReport(
+        document_type="bank_statement",
+        mappings=[FieldMapping(field_name="account_number", status="found", page=None, text_span="123456", notes="incomplete")],
+    )
+    fields = extract_fields(coverage, InstructionSet(instructions=[]), FakeLLMProvider(script=[]))
+    assert fields == []
+
+
+def test_extract_fields_skips_found_mapping_with_missing_text_span():
+    coverage = CoverageReport(
+        document_type="bank_statement",
+        mappings=[FieldMapping(field_name="account_number", status="found", page=1, text_span=None, notes="incomplete")],
+    )
+    fields = extract_fields(coverage, InstructionSet(instructions=[]), FakeLLMProvider(script=[]))
+    assert fields == []

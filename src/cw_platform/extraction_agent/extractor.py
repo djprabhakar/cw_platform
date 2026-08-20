@@ -20,7 +20,7 @@ def extract_fields(coverage: CoverageReport, instructions: InstructionSet, provi
     fields: list[OutputField] = []
 
     for mapping in coverage.mappings:
-        if mapping.status != "found":
+        if mapping.status != "found" or mapping.page is None or mapping.text_span is None:
             continue
 
         prompt = _PROMPT.format(field_name=mapping.field_name, text_span=mapping.text_span)
@@ -33,7 +33,7 @@ def extract_fields(coverage: CoverageReport, instructions: InstructionSet, provi
 
         provenance = ProvenanceRecord(
             field_name=mapping.field_name,
-            source=SourceRef(page=mapping.page, bbox=None, text_span=mapping.text_span or ""),
+            source=SourceRef(page=mapping.page, bbox=None, text_span=mapping.text_span),
             transformation_applied=transformation,
             agent="extraction_agent",
             confidence=float(confidence_str),
