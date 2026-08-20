@@ -7,5 +7,5 @@ from pydantic import BaseModel
 
 class ReviewItem(BaseModel):
     field_name: str
-    reason: Literal["low_confidence", "missing_required_field"]
+    reason: Literal["low_confidence", "missing_required_field", "stage_failure"]
     detail: str
